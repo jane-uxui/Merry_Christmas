@@ -141,7 +141,13 @@ function deleteTreePrompt() {
       sheet.close();
       renderHome();
       notice('트리와 편지를 삭제했어요.');
-    } catch {
+    } catch (error) {
+      if (error.code === 'permission-denied') {
+        throw new Error('삭제 권한을 확인하지 못했어요. 트리를 만든 Google 계정인지 확인해 주세요. 같은 계정이라면 서비스의 Firebase 삭제 권한 설정을 업데이트해야 해요.');
+      }
+      if (error.code === 'unauthenticated') {
+        throw new Error('로그인이 만료됐어요. 트리를 만든 Google 계정으로 다시 로그인해 주세요.');
+      }
       throw new Error('삭제를 완료하지 못했어요. 연결을 확인하고 다시 눌러줘. 이미 삭제된 편지는 복구되지 않아.');
     } finally {
       keep.disabled = close.disabled = false;
@@ -463,18 +469,19 @@ function treeUrl(id) {
 async function invite(copyOnly = false) {
   if (isDemo) { notice('Firebase를 연결하면 친구에게 링크를 보낼 수 있어요.'); return; }
   const url = treeUrl(treeId);
+  const text = '트리 장식에 편지를 담아 달아주세요 ♥️';
   if (!copyOnly && navigator.share) {
     try {
-      await navigator.share({ title: tree.name + '의 트리를 꾸며주세요!', text: '오너먼트에 편지를 담아 달아주세요.', url });
+      await navigator.share({ title: tree.name + '의 트리를 꾸며주세요!', text, url });
       return;
     } catch (error) { if (error.name === 'AbortError') return; }
   }
   try {
-    await navigator.clipboard.writeText(url);
-    notice('트리 링크를 복사했어요.');
+    await navigator.clipboard.writeText(copyOnly ? url : text + '\n' + url);
+    notice(copyOnly ? '트리 링크를 복사했어요.' : '공유 문구와 트리 링크를 복사했어요.');
   } catch {
-    openSheet('트리 링크 공유', '<div class="form"><label>공유 링크<input readonly value="' + escape(url) + '"></label></div>');
-    const input = sheet.querySelector('input');
+    openSheet('트리 링크 공유', '<div class="form"><label>공유 링크<textarea readonly>' + escape(copyOnly ? url : text + '\n' + url) + '</textarea></label></div>');
+    const input = sheet.querySelector('textarea');
     input.focus();
     input.select();
   }

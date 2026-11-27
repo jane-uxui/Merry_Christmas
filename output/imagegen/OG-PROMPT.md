@@ -1,0 +1,5 @@
+# Sharing image
+
+Generated with the built-in image generation tool. Reference: public/art/tree-illustrated-v1.png. Final: public/art/og-sobok-v1.jpg (1200 × 630).
+
+Create a polished Korean Christmas guestbook Open Graph sharing card, landscape 1200x630 aspect ratio 1.905:1. Warm ivory paper background, restrained soft pink and sage green palette, cute contemporary editorial illustration. Use the reference tree as style inspiration: scalloped sage green paper tree with a pink bow. Place a charming tree on the right decorated with a few tiny pink hearts and cream envelope ornaments, no glow. Left side beautifully typeset Korean text, exact text: small brand '소복소복', big dark forest green headline on two lines '내 트리에' / '마음을 달아줘', smaller subtitle on two lines '트리 장식에 편지를 담아' / '달아주세요 ♥'. Spacious layout, generous 70px safe margins, minimal pink stars, tasteful very subtle paper texture. Flat front-facing graphic, no UI buttons, no device mockups, no watermarks. Crisp correctly spelled Korean text.
