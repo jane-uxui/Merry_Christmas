@@ -1,0 +1,4 @@
+firebase-debug.log*
+.vercel/
+node_modules/
+

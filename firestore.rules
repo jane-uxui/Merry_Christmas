@@ -1,0 +1,56 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner(treeId) {
+      return request.auth != null && request.auth.uid == treeId
+        && request.auth.token.firebase.sign_in_provider == 'google.com';
+    }
+    function shape(data, fields) {
+      return data.keys().hasAll(fields) && data.keys().hasOnly(fields);
+    }
+    function text(value, max) {
+      return value is string && value.size() > 0 && value.size() <= max;
+    }
+    function point(data) {
+      return data.x is number && data.x >= 8 && data.x <= 92
+        && data.y is number && data.y >= 13 && data.y <= 86;
+    }
+    match /trees/{treeId} {
+      allow get: if true;
+      allow create: if owner(treeId)
+        && shape(request.resource.data, ['name', 'background', 'styles', 'lit', 'createdAt'])
+        && text(request.resource.data.name, 4)
+        && request.resource.data.background is int
+        && request.resource.data.background >= 0 && request.resource.data.background < 15
+        && request.resource.data.styles is list
+        && request.resource.data.styles.size() >= 1 && request.resource.data.styles.size() <= 11
+        && request.resource.data.styles.hasOnly([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+        && request.resource.data.lit is bool && request.resource.data.createdAt == request.time;
+      allow update: if owner(treeId) && (
+        (!('deleting' in resource.data) && request.resource.data.lit is bool
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lit']))
+        || (!('deleting' in resource.data) && text(request.resource.data.deleting, 36)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['deleting']))
+      );
+      allow delete: if owner(treeId) && 'deleting' in resource.data;
+      match /letters/{letterId} {
+        allow get: if true;
+        allow list: if request.query.limit <= 12;
+        allow create: if request.auth != null
+          && !('deleting' in get(/databases/$(database)/documents/trees/$(treeId)).data)
+          && shape(request.resource.data, ['author', 'message', 'authorUid', 'style', 'x', 'y', 'createdAt'])
+          && request.resource.data.authorUid == request.auth.uid
+          && text(request.resource.data.author, 16) && text(request.resource.data.message, 180)
+          && request.resource.data.style is int
+          && request.resource.data.style in get(/databases/$(database)/documents/trees/$(treeId)).data.styles
+          && request.resource.data.createdAt == request.time && point(request.resource.data);
+        allow update: if (owner(treeId) || (request.auth != null && request.auth.uid == resource.data.authorUid))
+          && !('deleting' in get(/databases/$(database)/documents/trees/$(treeId)).data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['x', 'y'])
+          && point(request.resource.data);
+        allow delete: if owner(treeId);
+      }
+    }
+  }
+}
+
