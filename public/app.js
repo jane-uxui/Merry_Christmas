@@ -1,8 +1,10 @@
 import { connect, isDemo } from './data.js';
 
 // Display bg (1) through bg (9) in order; keep legacy saved IDs 9–14 valid.
-const backgroundFiles = [1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 2, 5, 8, 9, 8];
-const backgrounds = backgroundFiles.map(file => '/art/background-' + file + '.png');
+// ID 14 is the plain background; it is accepted by existing Firestore rules.
+const EMPTY_BACKGROUND = 14;
+const backgroundFiles = [1, 2, 3, 4, 5, 6, 7, 8, 9, 8, 2, 5, 8, 9, null];
+const backgrounds = backgroundFiles.map(file => file === null ? null : '/art/background-' + file + '.png');
 const selectableBackgrounds = [0, 1, 2, 3, 4, 5, 6, 7, 8];
 // Preserve the flower/cream/pearl IDs used by existing letters.
 const styles = ['59', '58', '58-1', '59-1', '84', '60', '82', '83', '85', '88', '89']
@@ -291,7 +293,7 @@ function choices(items, labels, active, background = false) {
   return '<div class="choices">' + items.map(([src, id]) =>
     '<button type="button" class="choice' + (background ? ' background' : '') + '" data-choice="' + id
       + '" aria-label="' + labels[id] + '" aria-pressed="' + active.includes(id) + '">'
-      + '<img src="' + src + '" alt=""></button>').join('') + '</div>';
+      + (src ? '<img src="' + src + '" alt="">' : '<span class="plain-background">없음</span>') + '</button>').join('') + '</div>';
 }
 
 function choose(event, current, multi) {
@@ -388,7 +390,7 @@ function friendlyError(error) {
 }
 
 function createForm() {
-  const draft = { name: '', background: null, styles: [0, 1], lit: false };
+  const draft = { name: '', background: EMPTY_BACKGROUND, styles: [0, 1], lit: false };
   const back = '<button type="button" class="back" id="back" aria-label="돌아가기"><img src="/art/create-back.svg" alt=""></button>';
   app.innerHTML = '<div class="create-screen"><div class="create-heading">' + back + '<h1>내 트리 만들기</h1><span aria-hidden="true"></span></div>'
     + '<form class="form"><label>트리에 어떤 이름을 붙일까?<input name="name" placeholder="이름이나 별명을 4글자까지 입력해보아요" maxlength="4" required></label>'
@@ -406,7 +408,9 @@ function createForm() {
   const update = () => { preview.innerHTML = scene(draft, true); };
   form.elements.name.addEventListener('input', event => { draft.name = event.target.value.trim(); update(); });
   app.querySelector('#choose-background').addEventListener('click', () => {
-    openSheet('트리와 어울리는 배경을 골라줘', choices(selectableBackgrounds.map(id => [backgrounds[id], id]), backgroundNames, [draft.background], true));
+    const labels = [...backgroundNames];
+    labels[EMPTY_BACKGROUND] = '배경 없음';
+    openSheet('트리와 어울리는 배경을 골라줘', choices([EMPTY_BACKGROUND, ...selectableBackgrounds].map(id => [backgrounds[id], id]), labels, [draft.background], true));
     sheet.querySelector('.choices').addEventListener('click', event => {
       if (!event.target.closest('[data-choice]')) return;
       const [id] = choose(event, [draft.background], false);
@@ -419,7 +423,7 @@ function createForm() {
   submit(form, async () => {
     if (!draft.name) throw new Error('트리 이름을 입력해 주세요.');
     await store.signIn();
-    const id = await store.create({ name: draft.name, background: draft.background ?? 0, styles: draft.styles });
+    const id = await store.create({ name: draft.name, background: draft.background, styles: draft.styles });
     location.assign(treeUrl(id));
   });
 }

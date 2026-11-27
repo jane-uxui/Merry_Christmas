@@ -8,10 +8,7 @@ const storageKey = 'sobok-trees-v1';
 function localStore() {
   const demo = {
     name: '제인', background: null, styles: [0, 1], lit: false,
-    letters: [
-      { id: 'sample-1', author: '젠젠이', message: '올해도 함께해 줘서 고마워! 따뜻한 크리스마스 보내 ♡', style: 1, x: 56.5, y: 23.3 },
-      { id: 'sample-2', author: '하루', message: '내년에도 맛있는 거 많이 먹으러 가자!', style: 0, x: 25.6, y: 77.5 },
-    ],
+    letters: [],
   };
   const read = () => {
     const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
@@ -36,7 +33,8 @@ function localStore() {
     },
     async tree(id) { return read()[id]; },
     async create(fields) {
-      if (!read()[uid]) update(uid, () => ({ ...fields, lit: true, letters: [] }));
+      if (read()[uid]) throw new Error('이 구글 계정에는 이미 트리가 있어요. 내 트리 찾기로 확인해 주세요.');
+      update(uid, () => ({ ...fields, background: fields.background ?? 14, lit: false, letters: [] }));
       return uid;
     },
     async letters(id, cursor) {
@@ -92,9 +90,10 @@ async function cloudStore() {
       if (!id) throw new Error('먼저 Google로 로그인해 주세요.');
       await db.runTransaction(firestore, async transaction => {
         const ref = treeRef(id);
-        if (!(await transaction.get(ref)).exists()) {
-          transaction.set(ref, { ...fields, lit: true, createdAt: db.serverTimestamp() });
+        if ((await transaction.get(ref)).exists()) {
+          throw new Error('이 구글 계정에는 이미 트리가 있어요. 내 트리 찾기로 확인해 주세요.');
         }
+        transaction.set(ref, { ...fields, background: fields.background ?? 14, lit: false, createdAt: db.serverTimestamp() });
       });
       return id;
     },
